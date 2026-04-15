@@ -1,0 +1,16 @@
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore node_modules if you add any later
+node_modules/
+
+# Ignore environment files (keep your keys secure)
+.env
+.env.local
