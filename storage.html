@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CDM Clinic - Inventory Management</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="storage.css">
+  
+  <style>
+    /* ============================================
+       PAGE TRANSITION ANIMATIONS (from History)
+       ============================================ */
+    @keyframes pageLoad {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    body {
+      animation: pageLoad 0.4s ease-out;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    body.page-exit {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation (Aligned with History) -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-boxes-stacked"></i>
+      </div>
+      <div class="brand-text">
+        <h1>Inventory Management</h1>
+        <span id="dateTime" class="timestamp">Loading...</span>
+      </div>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item" onclick="navigateWithTransition('dashboard.html')">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Dashboard</span>
+      </li>
+      <li class="nav-item" onclick="navigateWithTransition('history.html')">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>History</span>
+      </li>
+      <li class="nav-item active" onclick="navigateWithTransition('storage.html')">
+        <i class="fa-solid fa-boxes-stacked"></i>
+        <span>Inventory</span>
+      </li>
+      <li class="nav-item" id="signOutBtn">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Sign Out</span>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Main Content (Grid Layout matching History) -->
+  <main class="dashboard">
+    
+    <!-- Left Panel - Stats & Search -->
+    <aside class="panel panel-left">
+      
+      <!-- Search Card (from History design) -->
+      <div class="card card-search">
+        <div class="card-header">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          Search Inventory
+        </div>
+        <div class="search-filters">
+          <div class="search-group">
+            <label><i class="fa-solid fa-box"></i> Search Items</label>
+            <input type="text" class="search-input" id="searchBox" placeholder="Search by box name and barcode...">
+          </div>
+          <button class="btn btn-primary btn-full" onclick="applyFilters()">
+            <i class="fa-solid fa-filter"></i> Search
+          </button>
+          <button class="btn btn-secondary btn-full" onclick="clearSearch()">
+            <i class="fa-solid fa-rotate-left"></i> Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Cards (from History design) -->
+      <div class="card-row">
+        <div class="card card-status stable">
+          <div class="status-icon">
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </div>
+          <div class="status-content">
+            <div class="status-label">Total Items</div>
+            <div class="status-value" id="totalItems">0</div>
+          </div>
+        </div>
+        <div class="card card-status critical">
+          <div class="status-icon">
+            <i class="fa-solid fa-calendar-xmark"></i>
+          </div>
+          <div class="status-content">
+            <div class="status-label">Expired</div>
+            <div class="status-value" id="expiredCount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-status warning">
+        <div class="status-icon">
+          <i class="fa-solid fa-clock"></i>
+        </div>
+        <div class="status-content">
+          <div class="status-label">Expiring Soon</div>
+          <div class="status-value" id="expiringSoonCount">0</div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Right Panel - Inventory Table -->
+    <section class="panel panel-right">
+
+      <!-- Auto Scan Mode Panel -->
+      <div class="card scan-mode-panel" id="autoScanPanel" style="display: none;">
+        <div class="scan-mode-header">
+          <i class="fa-solid fa-bolt"></i>
+          <div class="scan-mode-title">AUTO-SCAN MODE ACTIVE</div>
+        </div>
+        <div class="auto-scan-info">
+          <strong>How it works:</strong>
+          <ol>
+            <li>Scan a barcode → System looks up barcode in records</li>
+            <li>If FOUND: Auto-fills Box Name, etc. (you just confirm)</li>
+            <li>If NEW: Opens form to add new item with barcode pre-filled</li>
+            <li>All data goes directly to records!</li>
+          </ol>
+        </div>
+        <div class="last-scan-info" id="lastScanInfo">
+          <strong>Last Scan:</strong> <span id="lastScanBarcode">-</span> - 
+          <span id="lastScanAction">-</span>
+        </div>
+      </div>
+
+      <!-- Inventory Table Card (from History design) -->
+      <!-- UPDATED: Dashboard-style Quantity & Status badges applied via CSS/JS -->
+      <div class="card card-table">
+        <div class="card-header">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>Medicine Inventory</span>
+          <div class="header-actions">
+            <button class="btn-icon" onclick="refreshTable()" title="Refresh">
+              <i class="fa-solid fa-sync-alt"></i>
+            </button>
+            <button class="btn-icon" onclick="openAddModal()" title="Add New Box">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Loading Indicator (from History) -->
+        <div id="loadingIndicator">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <p>Loading inventory...</p>
+        </div>
+        
+        <div class="table-wrapper" id="tableWrapper">
+          <table class="data-table inventory-table" id="largeTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Box Name</th>
+                <th>Barcode</th>
+                <th>Qty</th>
+                <th>Exp. Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination (from History) -->
+        <div class="table-pagination" id="tablePagination">
+          <button class="btn btn-sm" onclick="prevPage()" id="prevBtn">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <span id="pageInfo">Page 1 of 1</span>
+          <button class="btn btn-sm" onclick="nextPage()" id="nextBtn">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Large Inventory Add/Edit Modal -->
+  <div id="largeModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <i class="fa-solid fa-box-open"></i>
+        <h3>Medicine Inventory Form</h3>
+        <button class="btn-close" onclick="closeLargeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="info-text">
+          <i class="fa-solid fa-lightbulb"></i>
+          <strong>Scan a barcode</strong> to auto-fill fields from records, or enter manually.
+        </div>
+        
+        <input type="hidden" id="itemId">
+        
+        <div class="info-grid">
+          <div class="info-group full-width">
+            <label class="field-label">
+              <i class="fa-solid fa-barcode"></i> Barcode (Scan to auto-fill):
+            </label>
+            <div class="input-group">
+              <input type="text" id="barcode" placeholder="Scan barcode or type here..." onkeydown="handleBarcodeKeydown(event)">
+              <button class="btn btn-primary" onclick="lookupBarcodeAndFill()">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </button>
+            </div>
+            <div class="scan-hint">Press Enter after scanning, or click "Lookup Barcode"</div>
+            <div class="lookup-status" id="lookupStatus"></div>
+          </div>
+          
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-box"></i> Box Name:
+            </label>
+            <input type="text" id="boxName" class="editable-field" placeholder="Will auto-fill from barcode lookup">
+          </div>
+          
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-hashtag"></i> Quantity:
+            </label>
+            <input type="number" id="quantity" class="editable-field" placeholder="0" min="0" value="1">
+          </div>
+          
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-calendar-days"></i> Expiration Date:
+            </label>
+            <input type="date" id="expDate" class="editable-field">
+          </div>
+          
+          <div class="info-group full-width">
+            <label class="field-label">
+              <i class="fa-solid fa-note-sticky"></i> Notes:
+            </label>
+            <input type="text" id="notes" class="editable-field" placeholder="Optional notes">
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-primary" id="saveLargeBtn">
+            <i class="fa-solid fa-floppy-disk"></i> Save
+          </button>
+          <button class="btn btn-secondary" onclick="closeLargeModal()">
+            <i class="fa-solid fa-xmark"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Add Modal -->
+  <div id="quickAddModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <i class="fa-solid fa-bolt"></i>
+        <h3>Quick Add New Item</h3>
+        <button class="btn-close" onclick="closeQuickAddModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="info-text">
+          This barcode is not in the records. Fill in details to add it.
+        </div>
+        
+        <div class="info-grid">
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-barcode"></i> Barcode (Scanned):
+            </label>
+            <input type="text" id="quickBarcode" readonly class="auto-filled">
+          </div>
+          
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-box"></i> Box Name:
+            </label>
+            <input type="text" id="quickBoxName" class="editable-field" placeholder="Enter box name" autofocus>
+          </div>
+          
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-hashtag"></i> Initial Quantity:
+            </label>
+            <input type="number" id="quickQuantity" class="editable-field" value="1" min="1">
+          </div>
+          
+          <div class="info-group">
+            <label class="field-label">
+              <i class="fa-solid fa-calendar-days"></i> Expiration Date:
+            </label>
+            <input type="date" id="quickExpDate" class="editable-field">
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-primary" onclick="saveQuickAdd()">
+            <i class="fa-solid fa-check"></i> Add
+          </button>
+          <button class="btn btn-secondary" onclick="closeQuickAddModal()">
+            <i class="fa-solid fa-xmark"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barcode Lookup Result Modal -->
+  <div id="lookupModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <h3>Barcode Lookup</h3>
+        <button class="btn-close" onclick="closeLookupModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="lookupResult"></div>
+        <div class="action-buttons">
+          <button class="btn btn-secondary" onclick="closeLookupModal()">
+            <i class="fa-solid fa-xmark"></i> Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign Out Modal (Aligned with History) -->
+  <div id="signOutModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-icon">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </div>
+      <h2>Sign Out?</h2>
+      <p>Are you sure you want to sign out?</p>
+      <div class="modal-buttons">
+        <button class="btn btn-danger" id="confirmSignOut">
+          <i class="fa-solid fa-check"></i> Yes, Sign Out
+        </button>
+        <button class="btn btn-secondary" id="cancelSignOut">
+          <i class="fa-solid fa-xmark"></i> Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       NEW: Delete Confirmation Modal
+       ============================================ -->
+  <div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <i class="fa-solid fa-triangle-exclamation" style="color: #dc143c;"></i>
+        <h3>Delete Item?</h3>
+        <button class="btn-close" onclick="closeDeleteConfirmModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="info-text warning">
+          <i class="fa-solid fa-circle-info" style="color: #ffb3b3;"></i>
+          <span>This action cannot be undone. The item will be permanently removed from the inventory.</span>
+        </div>
+        <div class="delete-item-preview">
+          <p>
+            <strong>Item:</strong> <span id="deleteItemName" class="item-name">-</span><br>
+            <strong>ID:</strong> <span id="deleteItemId" class="item-id">-</span>
+          </p>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-danger" id="confirmDeleteBtn">
+            <i class="fa-solid fa-trash"></i> Yes, Delete
+          </button>
+          <button class="btn btn-secondary" onclick="closeDeleteConfirmModal()">
+            <i class="fa-solid fa-xmark"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="storageToast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage">Action completed</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Shared Data - Must load BEFORE storage.js -->
+  <script src="shared-data.js"></script>
+  
+  <script>
+    // Page transition handler (from History)
+    function navigateWithTransition(url) {
+      if (window.location.href.includes(url)) return;
+      document.body.classList.add('page-exit');
+      setTimeout(() => {
+        window.location.href = url;
+      }, 300);
+    }
+    
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        document.body.style.animation = 'none';
+        document.body.offsetHeight;
+        document.body.style.animation = 'pageLoad 0.4s ease-out';
+      }
+    });
+    
+    // Clock - Philippine Time Display (matches Dashboard format from shared-data.js)
+    function updateDateTime() {
+      const timestamp = getPhilippineTimestamp();
+      document.getElementById('dateTime').textContent = `${timestamp.date} | ${timestamp.time}`;
+    }
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+  </script>
+  
+  <!-- Storage JS - Must load AFTER shared-data.js -->
+  <script src="storage.js"></script>
+</body>
+</html>
