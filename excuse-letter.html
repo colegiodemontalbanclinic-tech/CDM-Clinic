@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Document</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ============================================
+           BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Print button bar (hidden when printing) */
+        .print-bar {
+            width: 100%;
+            max-width: 8.5in;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, rgba(0, 100, 0, 0.9), rgba(50, 205, 50, 0.9));
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 50, 0, 0.3);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .btn-primary {
+            background: #ffffff;
+            color: #006400;
+            border: 2px solid #006400;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ============================================
+           DOCUMENT CONTAINER
+           ============================================ */
+        .document-container {
+            width: 100%;
+            max-width: 8.5in;
+            background: white;
+            padding: 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .document-content {
+            padding: 0.6in 0.8in;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #000000;
+        }
+
+        /* ============================================
+           HEADER SECTION (All Templates)
+           ============================================ */
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+        }
+
+        .header-logo-left, .header-logo-right {
+            width: 120px;
+            height: 120px;
+            flex-shrink: 0;
+        }
+
+        .header-logo-left img, .header-logo-right img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .header-text {
+            text-align: center;
+            flex: 1;
+            padding: 0 15px;
+        }
+
+        .header-text .republic {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-text .school-name {
+            font-size: 12pt;
+            font-weight: 700;
+            font-style: italic;
+            margin: 2px 0;
+        }
+
+        .header-text .address {
+            font-size: 8pt;
+            line-height: 1.3;
+        }
+
+        .header-text .contact {
+            font-size: 8pt;
+            color: #0066cc;
+            text-decoration: underline;
+        }
+
+        .medical-unit {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: 700;
+            font-style: italic;
+            margin: 8px 0;
+            letter-spacing: 1px;
+        }
+
+        .header-line {
+            border: none;
+            border-top: 2px solid #000000;
+            margin: 5px 0;
+        }
+
+        /* ============================================
+           FORM META INFO
+           ============================================ */
+        .form-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0 15px 0;
+            font-size: 10pt;
+        }
+
+        .form-id {
+            font-style: italic;
+        }
+
+        .form-title {
+            font-size: 12pt;
+            font-weight: 700;
+            text-decoration: underline;
+            text-transform: uppercase;
+        }
+
+        .form-date {
+            text-align: right;
+        }
+
+        .form-date label {
+            font-weight: 700;
+        }
+
+        .form-date .date-line {
+            display: inline-block;
+            min-width: 120px;
+            border-bottom: 1px solid #000000;
+        }
+
+        /* ============================================
+           BODY CONTENT
+           ============================================ */
+        .salutation {
+            margin: 15px 0;
+            font-size: 11pt;
+        }
+
+        .body-text {
+            text-align: justify;
+            margin-bottom: 12px;
+        }
+
+        .indent {
+            text-indent: 40px;
+        }
+
+        /* ============================================
+           FORM FIELDS & LINES
+           ============================================ */
+        .form-field {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .field-label {
+            font-weight: 700;
+            white-space: nowrap;
+            margin-right: 5px;
+        }
+
+        .field-line {
+            flex: 1;
+            min-width: 100px;
+            border-bottom: 1px solid #000000;
+            min-height: 18px;
+            display: inline-block;
+            padding: 0 5px;
+        }
+
+        .field-line:empty::before {
+            content: '\00a0';
+        }
+
+        .field-value {
+            border-bottom: 1px solid #000000;
+            padding: 0 5px;
+            font-weight: 400;
+        }
+
+        /* Multi-line field */
+        .field-block {
+            margin-bottom: 12px;
+        }
+
+        .field-block .field-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .field-block .field-lines {
+            border-bottom: 1px solid #000000;
+            min-height: 20px;
+            margin-bottom: 3px;
+        }
+
+        /* ============================================
+           VITAL SIGNS SECTION
+           ============================================ */
+        .vitals-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 10px 0;
+            align-items: baseline;
+        }
+
+        .vital-item {
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
+        }
+
+        .vital-label {
+            font-weight: 700;
+        }
+
+        .vital-line {
+            display: inline-block;
+            min-width: 50px;
+            border-bottom: 1px solid #000000;
+            text-align: center;
+            padding: 0 5px;
+        }
+
+        .vital-unit {
+            font-size: 9pt;
+        }
+
+        /* ============================================
+           REFERRAL FORM SPECIFIC
+           ============================================ */
+        .referral-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .referral-grid .form-field {
+            margin-bottom: 5px;
+        }
+
+        /* ============================================
+           SIGNATURE SECTION
+           ============================================ */
+        .signature-area {
+            margin-top: 30px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .signature-block {
+            text-align: center;
+            width: 280px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000000;
+            padding-top: 5px;
+            margin-bottom: 3px;
+            min-height: 20px;
+        }
+
+        .signature-label {
+            font-size: 10pt;
+        }
+
+        /* ============================================
+           PRINT STYLES
+           ============================================ */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .print-bar {
+                display: none !important;
+            }
+
+            .document-container {
+                box-shadow: none;
+                max-width: none;
+                width: 100%;
+            }
+
+            .document-content {
+                padding: 0;
+            }
+        }
+
+        .no-print {
+            display: block;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Print Control Bar -->
+    <div class="print-bar no-print">
+        <button class="btn btn-secondary" onclick="window.close()">
+            <i class="fas fa-times"></i> Close
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Document
+        </button>
+    </div>
+
+    <!-- Document Container -->
+    <div class="document-container" id="documentContainer">
+        <div class="document-content" id="documentContent">
+            <!-- Content populated by JavaScript based on template type -->
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // DOCUMENT TEMPLATE GENERATOR
+        // ============================================
+
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                templateType: params.get('templateType') || 'medical-slip',
+                name: params.get('name'),
+                schoolId: params.get('schoolId'),
+                age: params.get('age'),
+                gender: params.get('gender'),
+                grade: params.get('grade'),
+                guardian: params.get('guardian'),
+                address: params.get('address'),
+                birthdate: params.get('birthdate'),
+                date: params.get('date'),
+                time: params.get('time'),
+                hashtag: params.get('hashtag'),
+                complaint: params.get('complaint'),
+                vitals: params.get('vitals'),
+                bp: params.get('bp'),
+                rr: params.get('rr'),
+                pr: params.get('pr'),
+                temp: params.get('temp'),
+                spo2: params.get('spo2'),
+                management: params.get('management'),
+                notes: params.get('notes'),
+                nurseName: params.get('nurseName'),
+                licenseNo: params.get('licenseNo')
+            };
+        }
+
+        function populateDocument() {
+            const params = getUrlParams();
+            const stored = localStorage.getItem('documentData');
+            const data = stored ? JSON.parse(stored) : {};
+            
+            // Merge URL params over stored data
+            const doc = {
+                ...data,
+                ...Object.fromEntries(
+                    Object.entries(params).filter(([_, v]) => v !== null)
+                )
+            };
+
+            const container = document.getElementById('documentContent');
+            const templateType = doc.templateType || 'medical-slip';
+
+            // Build the appropriate template
+            switch(templateType) {
+                case 'medical-slip':
+                    container.innerHTML = buildMedicalSlip(doc);
+                    break;
+                case 'excuse-slip':
+                    container.innerHTML = buildExcuseSlip(doc);
+                    break;
+                case 'referral-form':
+                    container.innerHTML = buildReferralForm(doc);
+                    break;
+                default:
+                    container.innerHTML = buildMedicalSlip(doc);
+            }
+
+            // Set page title
+            const titles = {
+                'medical-slip': 'Medical Slip',
+                'excuse-slip': 'Excuse Slip',
+                'referral-form': 'Referral Form'
+            };
+            document.title = 'Clinic ' + (titles[templateType] || 'Document');
+        }
+
+        // ============================================
+        // HEADER BUILDER (Shared across all templates)
+        // ============================================
+        function buildHeader() {
+            return `
+                <div class="doc-header">
+                    <div class="header-logo-left">
+                        <img src="img/logo2.jpg" alt="School Logo" onerror="this.style.display='none'">
+                    </div>
+                    <div class="header-text">
+                        <div class="republic">Republic of the Philippines</div>
+                        <div class="republic">Province of Rizal</div>
+                        <div class="republic">Municipality of Montalban</div>
+                        <div class="school-name">Colegio de Montalban</div>
+                        <div class="address">Kasiglahan Village, San Jose, Montalban, Rizal</div>
+                        <div class="contact">coleiodemontalban.official@gmail.com</div>
+                        <div class="contact">Contact # 8-296-8667</div>
+                    </div>
+                    <div class="header-logo-right">
+                        <img src="img/logo.png" alt="School Logo" onerror="this.style.display='none'">
+                    </div>
+                </div>
+                <div class="medical-unit">Medical Unit</div>
+                <hr class="header-line">
+            `;
+        }
+
+        // ============================================
+        // MEDICAL SLIP TEMPLATE (FORM-03)
+        // ============================================
+        function buildMedicalSlip(doc) {
+            return buildHeader() + `
+                <div class="form-meta">
+                    <span class="form-id">CDM/MEDICAL/FORM-03</span>
+                    <span class="form-title">MEDICAL SLIP</span>
+                    <div class="form-date">
+                        <div><label>Date:</label> <span class="date-line">${doc.date || ''}</span></div>
+                        <div><label>Time:</label> <span class="date-line">${doc.time || ''}</span></div>
+                    </div>
+                </div>
+
+                <div class="salutation">Sir/Ma'am;</div>
+
+                <div class="body-text indent">
+                    We would like to inform you that Mr./Ms. <span class="field-value">${doc.name || ''}</span>, 
+                    (age) <span class="field-value">${doc.age || ''}</span>, 
+                    (SN) <span class="field-value">${doc.schoolId || ''}</span>, 
+                    (course, year and section) <span class="field-value">${doc.grade || ''}</span> 
+                    is having <span class="field-value">${doc.complaint || ''}</span>
+                </div>
+
+                <div class="vitals-row">
+                    <span class="field-label">Vital Signs:</span>
+                    <div class="vital-item">
+                        <span class="vital-label">BP:</span>
+                        <span class="vital-line">${doc.bp || ''}</span>
+                        <span class="vital-unit">mmHg</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">RR:</span>
+                        <span class="vital-line">${doc.rr || ''}</span>
+                        <span class="vital-unit">cpm</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">PR:</span>
+                        <span class="vital-line">${doc.pr || ''}</span>
+                        <span class="vital-unit">bpm</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">Temp:</span>
+                        <span class="vital-line">${doc.temp || ''}</span>
+                        <span class="vital-unit">°C</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">SpO₂:</span>
+                        <span class="vital-line">${doc.spo2 || ''}</span>
+                        <span class="vital-unit">%</span>
+                    </div>
+                </div>
+
+                <div class="field-block">
+                    <span class="field-label">Treatment given:</span>
+                    <div class="field-lines">${doc.notes || ''}</div>
+                    <div class="field-lines"></div>
+                </div>
+
+                <div class="signature-area">
+                    <div class="signature-block">
+                        <div class="signature-line">${doc.nurseName || ''}</div>
+                        <div class="signature-label">Name and Signature of Nurse on Duty</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // EXCUSE SLIP TEMPLATE (FORM-02)
+        // ============================================
+        function buildExcuseSlip(doc) {
+            return buildHeader() + `
+                <div class="form-meta">
+                    <span class="form-id">CDM/MEDICAL/FORM-02</span>
+                    <span class="form-title">EXCUSE SLIP</span>
+                    <div class="form-date">
+                        <div><label>Date:</label> <span class="date-line">${doc.date || ''}</span></div>
+                    </div>
+                </div>
+
+                <div class="salutation">Sir/Ma'am;</div>
+
+                <div class="body-text indent">
+                    We would like to inform you that Mr./Ms. <span class="field-value">${doc.name || ''}</span>, 
+                    (age) <span class="field-value">${doc.age || ''}</span>, 
+                    (SN) <span class="field-value">${doc.schoolId || ''}</span>, 
+                    (course, year and section) <span class="field-value">${doc.grade || ''}</span> 
+                    is having <span class="field-value">${doc.complaint || ''}</span>
+                </div>
+
+                <div class="vitals-row">
+                    <span class="field-label">Vital Signs:</span>
+                    <div class="vital-item">
+                        <span class="vital-label">BP:</span>
+                        <span class="vital-line">${doc.bp || ''}</span>
+                        <span class="vital-unit">mmHg</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">RR:</span>
+                        <span class="vital-line">${doc.rr || ''}</span>
+                        <span class="vital-unit">cpm</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">PR:</span>
+                        <span class="vital-line">${doc.pr || ''}</span>
+                        <span class="vital-unit">bpm</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">Temp:</span>
+                        <span class="vital-line">${doc.temp || ''}</span>
+                        <span class="vital-unit">°C</span>
+                    </div>
+                    <div class="vital-item">
+                        <span class="vital-label">SpO₂:</span>
+                        <span class="vital-line">${doc.spo2 || ''}</span>
+                        <span class="vital-unit">%</span>
+                    </div>
+                </div>
+
+                <div class="field-block">
+                    <span class="field-label">Treatment given:</span>
+                    <div class="field-lines">${doc.notes || ''}</div>
+                    <div class="field-lines"></div>
+                </div>
+
+                <div class="field-block">
+                    <span class="field-label">Recommendation:</span>
+                    <div class="body-text indent">
+                        Advised to go home, take a rest and consult a physician for further care and management.
+                    </div>
+                    <div class="body-text indent">
+                        Thank you for your kind consideration.
+                    </div>
+                </div>
+
+                <div class="signature-area">
+                    <div class="signature-block">
+                        <div class="signature-line">${doc.nurseName || ''}</div>
+                        <div class="signature-label">Name and Signature of Nurse on Duty</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // REFERRAL FORM TEMPLATE (FORM-04)
+        // ============================================
+        function buildReferralForm(doc) {
+            return buildHeader() + `
+                <div class="form-meta">
+                    <span class="form-id">CDM/MEDICAL/FORM-04</span>
+                    <span class="form-title">REFERRAL FORM</span>
+                </div>
+
+                <div class="form-field">
+                    <span class="field-label">DATE/TIME:</span>
+                    <span class="field-line">${doc.date || ''} ${doc.time ? '| ' + doc.time : ''}</span>
+                </div>
+
+                <div class="form-field">
+                    <span class="field-label">NAME OF PATIENT:</span>
+                    <span class="field-line">${doc.name || ''}</span>
+                </div>
+
+                <div class="referral-grid">
+                    <div class="form-field">
+                        <span class="field-label">AGE:</span>
+                        <span class="field-line">${doc.age || ''}</span>
+                    </div>
+                    <div class="form-field">
+                        <span class="field-label">BIRTHDATE:</span>
+                        <span class="field-line">${doc.birthdate || ''}</span>
+                    </div>
+                    <div class="form-field">
+                        <span class="field-label">SEX:</span>
+                        <span class="field-line">${doc.gender || ''}</span>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <span class="field-label">ADDRESS:</span>
+                    <span class="field-line">${doc.address || ''}</span>
+                </div>
+
+                <div class="form-field">
+                    <span class="field-label">GUARDIAN:</span>
+                    <span class="field-line">${doc.guardian || ''}</span>
+                </div>
+
+                <div class="form-field">
+                    <span class="field-label">CONTACT NUMBER:</span>
+                    <span class="field-line">${doc.schoolId || ''}</span>
+                </div>
+
+                <div class="field-block">
+                    <span class="field-label">WORKING DIAGNOSIS/ COMPLAINT:</span>
+                    <div class="field-lines">${doc.complaint || ''}</div>
+                    <div class="field-lines"></div>
+                    <div class="field-lines"></div>
+                </div>
+
+                <div class="field-block">
+                    <span class="field-label">MANAGEMENT:</span>
+                    <div class="field-lines">${doc.management || ''}</div>
+                    <div class="field-lines"></div>
+                    <div class="field-lines"></div>
+                </div>
+
+                <div class="field-block">
+                    <span class="field-label">REASON FOR REFERRAL:</span>
+                    <div class="field-lines"></div>
+                    <div class="field-lines"></div>
+                    <div class="field-lines"></div>
+                </div>
+
+                <div class="signature-area" style="justify-content: flex-start; margin-top: 40px;">
+                    <div class="signature-block" style="text-align: left; width: 250px;">
+                        <span class="field-label">NURSE ON DUTY:</span>
+                        <span class="field-line" style="display: block; margin-top: 5px;">${doc.nurseName || ''}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto-populate on load
+        document.addEventListener('DOMContentLoaded', populateDocument);
+    </script>
+</body>
+</html>

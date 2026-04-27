@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDM Clinic Patient History</title>
+    <link rel="stylesheet" href="history.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- ============================================
+         PAGE TRANSITION ANIMATIONS
+         ============================================ -->
+    <style>
+        /* Initial page load animation */
+        @keyframes pageLoad {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            animation: pageLoad 0.4s ease-out;
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Page exit transition class */
+        body.page-exit {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* ============================================
+           MODAL ENHANCEMENT STYLES
+           ============================================ */
+
+        /* Auto-save indicator */
+        .auto-save-indicator {
+            position: absolute;
+            top: 12px;
+            right: 60px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+            background: rgba(0, 60, 0, 0.6);
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(50, 205, 50, 0.3);
+        }
+
+        .auto-save-indicator.show {
+            opacity: 1;
+        }
+
+        .auto-save-indicator i {
+            font-size: 0.9rem;
+            color: rgba(144, 238, 144, 0.9);
+        }
+
+        /* Enhanced validation states */
+        .editable-field.error {
+            border-color: rgba(220, 20, 60, 0.9) !important;
+            box-shadow: 0 0 12px rgba(220, 20, 60, 0.4) !important;
+            animation: shake-field 0.4s ease;
+        }
+
+        .editable-field.success {
+            border-color: rgba(50, 205, 50, 0.9) !important;
+            box-shadow: 0 0 12px rgba(50, 205, 50, 0.4) !important;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes shake-field {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+
+        /* Modal show animation enhancement */
+        .modal.show .modal-content {
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Required field indicator */
+        .required-label::after {
+            content: ' *';
+            color: #FFD700;
+            font-weight: 700;
+        }
+
+        /* Field error message */
+        .field-error-msg {
+            font-size: 0.75rem;
+            color: #ff6b6b;
+            margin-top: 4px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .field-error-msg.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Enhanced registration badge */
+        .reg-status-badge {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-left: 10px;
+            background: rgba(220, 20, 60, 0.6);
+            color: #ffffff;
+            font-weight: 700;
+            border: 1px solid rgba(220, 20, 60, 0.5);
+            animation: pulse-reg-badge 2s infinite;
+            flex-shrink: 0;
+            vertical-align: middle;
+        }
+
+        @keyframes pulse-reg-badge {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0.4); }
+            50% { box-shadow: 0 0 8px 2px rgba(220, 20, 60, 0.3); }
+        }
+
+        .reg-status-badge.registered {
+            background: rgba(0, 128, 0, 0.6);
+            color: #ffffff;
+            border-color: rgba(50, 205, 50, 0.5);
+            animation: none;
+        }
+
+        /* Modal header with badge inline */
+        .modal-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Loading overlay for save */
+        .save-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 40, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(4px);
+        }
+
+        .save-overlay.show {
+            display: flex;
+        }
+
+        .save-overlay i {
+            font-size: 2rem;
+            color: rgba(50, 205, 50, 0.9);
+        }
+
+        .save-overlay p {
+            color: #ffffff;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        /* Enhanced vital card animations */
+        .vital-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vital-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .vital-card:hover::before {
+            left: 100%;
+        }
+
+        /* Focus styles for accessibility */
+        .editable-field:focus-visible {
+            outline: 2px solid rgba(50, 205, 50, 0.6);
+            outline-offset: 2px;
+        }
+
+        /* Disabled state for buttons */
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Toast animation enhancement */
+        @keyframes toastSlideIn {
+            from { transform: translateX(400px) translateY(20px); opacity: 0; }
+            to { transform: translateX(0) translateY(0); opacity: 1; }
+        }
+
+        .toast.show {
+            animation: toastSlideIn 0.4s ease;
+        }
+
+        /* Print styles enhancement */
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="brand-icon">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <div class="brand-text">
+                <h1>Patient History</h1>
+                <span class="timestamp" id="currentTime">Loading...</span>
+            </div>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item" onclick="navigateWithTransition('dashboard.html')">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item active" onclick="navigateWithTransition('history.html')">
+                <i class="fa-solid fa-history"></i>
+                <span>History</span>
+            </li>
+            <li class="nav-item" onclick="navigateWithTransition('storage.html')">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>Inventory</span>
+            </li>
+            <li class="nav-item" id="signOutBtn">
+                <i class="fa-solid fa-sign-out-alt"></i>
+                <span>Sign Out</span>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard">
+        <!-- Left Panel - Search & Stats -->
+        <aside class="panel panel-left">
+            <!-- Search Card -->
+            <div class="card card-search">
+                <div class="card-header">
+                    <i class="fas fa-search"></i>
+                    Search Records
+                </div>
+                <div class="search-filters">
+                    <div class="search-group">
+                        <label><i class="fas fa-hashtag"></i> Hashtag Number</label>
+                        <input type="text" id="searchHashtag" placeholder="001-999" class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <label><i class="fas fa-calendar"></i> Date Range</label>
+                        <div class="date-range">
+                            <input type="date" id="dateFrom" class="search-input">
+                            <span>to</span>
+                            <input type="date" id="dateTo" class="search-input">
+                        </div>
+                    </div>
+                    <div class="search-group">
+                        <label><i class="fas fa-user"></i> Patient Name</label>
+                        <input type="text" id="searchName" placeholder="Search by name..." class="search-input">
+                    </div>
+                    <div class="search-group">
+                        <label><i class="fas fa-filter"></i> Quick Filters</label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-sm" onclick="filterPendingOnly()" style="flex: 1;">
+                                <i class="fas fa-clock"></i> Pending
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
+                    <button class="btn btn-secondary btn-full" onclick="clearFilters()">
+                        <i class="fas fa-undo"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Today's Stats -->
+            <div class="card card-highlight">
+                <div class="card-header">
+                    <i class="fas fa-calendar-day"></i>
+                    Today's Patients
+                </div>
+                <div class="metric-value" id="todayCount">0</div>
+                <div class="metric-label">Patients</div>
+            </div>
+
+            <!-- Registration Progress Card -->
+            <div class="card" id="regProgressCard" style="display: none;">
+                <div class="card-header">
+                    <i class="fas fa-clipboard-check"></i>
+                    Registration Progress
+                </div>
+                <div class="queue-info">
+                    <span id="regProgressInfo">0 of 0 registered</span>
+                    <span id="regProgressPercent">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="regProgressFill"></div>
+                </div>
+                <div class="queue-status-detail" id="regStatusDetail">
+                    Waiting for patient details...
+                </div>
+            </div>
+
+            <!-- Status Overview -->
+            <div class="card-row">
+                <div class="card card-status stable">
+                    <div class="status-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-label">Stable</div>
+                        <div class="status-value" id="stableCount">0</div>
+                    </div>
+                </div>
+                <div class="card card-status unstable">
+                    <div class="status-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="status-content">
+                        <div class="status-label">Unstable</div>
+                        <div class="status-value" id="unstableCount">0</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Panel - Patient Table -->
+        <section class="panel panel-right">
+            <!-- Patient Table Card -->
+            <div class="card card-table">
+                <div class="card-header">
+                    <i class="fas fa-list-alt"></i>
+                    Patient History Records
+                    <div class="header-actions">
+                        <span class="badge" id="totalRecords">0 Records</span>
+                        <button class="btn-icon" onclick="refreshTable()" title="Refresh Data">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="btn-icon" onclick="exportData()" title="Export to Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading patient records from database...</p>
+                </div>
+
+                <div class="table-wrapper" id="tableWrapper">
+                    <table class="data-table" id="patientTable">
+                        <thead>
+                            <tr>
+                                <th>No#</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Patient Name</th>
+                                <th>Vital Signs</th>
+                                <th>Status</th>
+                                <th>Reg. Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Dynamic content populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-pagination" id="tablePagination">
+                    <button class="btn btn-sm" onclick="prevPage()" id="prevBtn" title="Previous Page">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button class="btn btn-sm" onclick="nextPage()" id="nextBtn" title="Next Page">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================
+         PATIENT DETAIL MODAL - ENHANCED
+         ============================================ -->
+    <div class="modal" id="patientModal">
+        <div class="modal-content modal-large" style="position: relative;">
+            <!-- Auto-save Indicator -->
+            <div class="auto-save-indicator" id="autoSaveIndicator">
+                <i class="fas fa-pen"></i>
+                <span>Editing...</span>
+            </div>
+
+            <!-- Save Loading Overlay -->
+            <div class="save-overlay" id="saveOverlay">
+                <div style="text-align: center;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Saving patient details...</p>
+                </div>
+            </div>
+
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-user-circle"></i> 
+                    Patient Details
+                    <span class="reg-status-badge" id="modalRegStatus">
+                        <i class="fas fa-exclamation-circle"></i> Needs Registration
+                    </span>
+                </h2>
+                <button class="btn-close" onclick="closeModal()" title="Close (Esc)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="patient-profile">
+                    <!-- Profile Header Section -->
+                    <div class="profile-header">
+                        <div class="profile-info">
+                            <span class="profile-id" id="modalHashtag">--</span>
+
+                            <!-- Patient Name Input -->
+                            <div style="position: relative;">
+                                <input type="text" 
+                                       id="modalName" 
+                                       class="editable-field" 
+                                       placeholder="Enter patient name *"
+                                       autocomplete="off"
+                                       required>
+                                <span class="input-hint">Format: SURNAME, FIRST NAME, MIDDLE NAME</span>
+                                <div class="field-error-msg" id="nameError">Please enter patient name in correct format</div>
+                            </div>
+
+                            <!-- Status Badge -->
+                            <span class="profile-status" id="modalStatusBadge">--</span>
+
+                            <!-- Status Reason (for unstable patients) -->
+                            <div class="status-reason" id="modalStatusReason"></div>
+                        </div>
+                    </div>
+
+                    <!-- Info Grid -->
+                    <div class="info-grid">
+                        <div class="info-group">
+                            <label class="required-label"><i class="fas fa-id-card"></i> School ID</label>
+                            <input type="text" 
+                                   id="modalSchoolId" 
+                                   class="editable-field" 
+                                   placeholder="Enter School ID"
+                                   autocomplete="off">
+                            <div class="field-error-msg" id="schoolIdError">School ID must be at least 3 characters</div>
+                        </div>
+
+                        <div class="info-group">
+                            <label><i class="fas fa-birthday-cake"></i> Age</label>
+                            <input type="number" 
+                                   id="modalAge" 
+                                   class="editable-field" 
+                                   placeholder="Age" 
+                                   min="1" 
+                                   max="120"
+                                   autocomplete="off">
+                            <div class="field-error-msg" id="ageError">Please enter a valid age (1-120)</div>
+                        </div>
+
+                        <div class="info-group">
+                            <label><i class="fas fa-venus-mars"></i> Sex</label>
+                            <select id="modalGender" class="editable-field">
+                                <option value="">Select Sex</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+
+                        <div class="info-group">
+                            <label><i class="fas fa-graduation-cap"></i> Course, Year & Section</label>
+                            <input type="text" 
+                                   id="modalGrade" 
+                                   class="editable-field" 
+                                   placeholder="e.g. BSIT 3A"
+                                   autocomplete="off">
+                        </div>
+
+                        <div class="info-group">
+                            <label><i class="fas fa-phone"></i> Contact Number</label>
+                            <input type="tel" 
+                                   id="modalContact" 
+                                   class="editable-field" 
+                                   placeholder="Enter contact number"
+                                   autocomplete="off">
+                        </div>
+
+                        <!-- Guardian Field -->
+                        <div class="info-group">
+                            <label><i class="fas fa-user-shield"></i> Guardian</label>
+                            <input type="text" 
+                                   id="modalGuardian" 
+                                   class="editable-field" 
+                                   placeholder="Enter guardian name"
+                                   autocomplete="off">
+                        </div>
+
+                        <!-- Address Field -->
+                        <div class="info-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Address</label>
+                            <input type="text" 
+                                   id="modalAddress" 
+                                   class="editable-field" 
+                                   placeholder="Enter address"
+                                   autocomplete="off">
+                        </div>
+
+                        <!-- Birthdate Field -->
+                        <div class="info-group">
+                            <label><i class="fas fa-calendar-alt"></i> Birthdate</label>
+                            <input type="date" 
+                                   id="modalBirthdate" 
+                                   class="editable-field">
+                        </div>
+
+                        <div class="info-group">
+                            <label><i class="fas fa-calendar"></i> Visit Date & Time</label>
+                            <span id="modalDate" style="font-weight: 500;">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Vital Records Section -->
+                    <div class="vitals-section">
+                        <h4><i class="fa-solid fa-heartbeat"></i> Vital Records</h4>
+                        <div class="vitals-grid">
+                            <div class="vital-card" id="tempCard">
+                                <i class="fas fa-thermometer-half"></i>
+                                <span class="vital-label">Temperature</span>
+                                <span class="vital-value" id="modalTemp">--</span>
+                            </div>
+                            <div class="vital-card" id="hrCard">
+                                <i class="fas fa-heart"></i>
+                                <span class="vital-label">Heart Rate</span>
+                                <span class="vital-value" id="modalHeartRate">--</span>
+                            </div>
+                            <div class="vital-card" id="bpCard">
+                                <i class="fas fa-tint"></i>
+                                <span class="vital-label">Blood Pressure</span>
+                                <input type="text" 
+                                       id="modalBP" 
+                                       class="editable-field" 
+                                       placeholder="120/80"
+                                       autocomplete="off">
+                                <div class="field-error-msg" id="bpError">Format: 120/80</div>
+                            </div>
+                            <div class="vital-card" id="o2Card">
+                                <i class="fas fa-lungs"></i>
+                                <span class="vital-label">Oxygen Saturation</span>
+                                <span class="vital-value" id="modalO2">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Symptoms Section -->
+                    <div class="complaint-section">
+                        <h4><i class="fas fa-notes-medical"></i> Diagnosis / Complaint</h4>
+                        <textarea id="modalComplaint" 
+                                  class="editable-field" 
+                                  rows="4" 
+                                  placeholder="Diagnosis and complaints of patient..."
+                                  autocomplete="off"></textarea>
+                    </div>
+
+                    <!-- Nurse Notes Section -->
+                    <div class="notes-section">
+                        <h4><i class="fas fa-clipboard"></i> Nurse Notes & Assessment</h4>
+                        <textarea id="modalNotes" 
+                                  rows="4" 
+                                  placeholder="Add nursing assessment, treatment given, medications administered, follow-up instructions..."
+                                  autocomplete="off"></textarea>
+                    </div>
+
+                    <!-- Management Section -->
+                    <div class="management-section">
+                        <h4><i class="fas fa-tasks"></i> Management</h4>
+                        <textarea id="modalManagement" 
+                                  class="editable-field" 
+                                  rows="4" 
+                                  placeholder="Enter management plan, medications given, referrals, or follow-up instructions..."
+                                  autocomplete="off"></textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="savePatientDetails()" id="saveBtn">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button class="btn btn-secondary" onclick="openTemplatePicker()" id="printBtn">
+                            <i class="fas fa-print"></i> Print Document
+                        </button>
+                        <button class="btn btn-danger" onclick="closeModal()" style="margin-left: auto;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         TEMPLATE PICKER MODAL
+         ============================================ -->
+    <div class="modal" id="templatePickerModal">
+        <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <div class="modal-header" style="justify-content: center;">
+                <h2><i class="fas fa-file-medical"></i> Select Document Template</h2>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <p style="margin-bottom: 25px; opacity: 0.9;">Choose the document type to generate:</p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <!-- Medical Slip -->
+                    <button class="btn template-option" onclick="selectTemplate('medical-slip')" style="flex-direction: column; gap: 10px; padding: 25px 15px; background: linear-gradient(135deg, rgba(0,100,0,0.3), rgba(50,205,50,0.2)); border: 2px solid rgba(50,205,50,0.4);">
+                        <i class="fas fa-file-medical" style="font-size: 2rem;"></i>
+                        <span style="font-size: 0.9rem;">Medical Slip</span>
+                        <span style="font-size: 0.7rem; opacity: 0.7;">FORM-03</span>
+                    </button>
+
+                    <!-- Excuse Slip -->
+                    <button class="btn template-option" onclick="selectTemplate('excuse-slip')" style="flex-direction: column; gap: 10px; padding: 25px 15px; background: linear-gradient(135deg, rgba(0,100,0,0.3), rgba(50,205,50,0.2)); border: 2px solid rgba(50,205,50,0.4);">
+                        <i class="fas fa-file-signature" style="font-size: 2rem;"></i>
+                        <span style="font-size: 0.9rem;">Excuse Slip</span>
+                        <span style="font-size: 0.7rem; opacity: 0.7;">FORM-02</span>
+                    </button>
+
+                    <!-- Referral Form -->
+                    <button class="btn template-option" onclick="selectTemplate('referral-form')" style="flex-direction: column; gap: 10px; padding: 25px 15px; background: linear-gradient(135deg, rgba(0,100,0,0.3), rgba(50,205,50,0.2)); border: 2px solid rgba(50,205,50,0.4);">
+                        <i class="fas fa-hospital" style="font-size: 2rem;"></i>
+                        <span style="font-size: 0.9rem;">Referral Form</span>
+                        <span style="font-size: 0.7rem; opacity: 0.7;">FORM-04</span>
+                    </button>
+                </div>
+
+                <button class="btn btn-secondary btn-full" onclick="closeTemplatePicker()" style="margin-top: 20px;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SIGN OUT CONFIRMATION MODAL
+         ============================================ -->
+    <div id="signOutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h2>Sign Out?</h2>
+            <p>Are you sure you want to sign out?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="confirmSignOut">
+                    <i class="fa-solid fa-check"></i> Yes, Sign Out
+                </button>
+                <button class="btn btn-secondary" id="cancelSignOut">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         TOAST NOTIFICATION
+         ============================================ -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action completed successfully</span>
+    </div>
+
+    <!-- ============================================
+         SCRIPTS
+         ============================================ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="shared-data.js"></script>
+    <script src="history.js"></script>
+
+    <!-- Page Transition Script -->
+    <script>
+        // Simple page transition handler
+        function navigateWithTransition(url) {
+            // Don't animate if it's the same page
+            if (window.location.href.includes(url)) {
+                return;
+            }
+
+            // Add exit animation class
+            document.body.classList.add('page-exit');
+
+            // Wait for animation then navigate
+            setTimeout(() => {
+                window.location.href = url;
+            }, 300);
+        }
+
+        // Handle browser back/forward buttons - re-trigger enter animation
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                // Page was loaded from cache (back button)
+                document.body.style.animation = 'none';
+                document.body.offsetHeight; // Trigger reflow
+                document.body.style.animation = 'pageLoad 0.4s ease-out';
+            }
+        });
+    </script>
+</body>
+</html>
